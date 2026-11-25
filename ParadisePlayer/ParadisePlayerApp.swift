@@ -1,17 +1,14 @@
-//
-//  ParadisePlayerApp.swift
-//  ParadisePlayer
-//
-//  Created by Sylvia Nebel on 24.11.26.
-//
-
 import SwiftUI
 
 @main
 struct ParadisePlayerApp: App {
+    @State private var model = AppModel()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(model)
+                .preferredColorScheme(.dark)
         }
     }
 }
