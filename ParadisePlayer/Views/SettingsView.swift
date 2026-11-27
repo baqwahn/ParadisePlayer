@@ -31,6 +31,18 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Picker("Bewertung", selection: $model.settings.ratingStyle) {
+                        ForEach(RatingStyle.allCases) { Text($0.label).tag($0) }
+                    }
+                } header: {
+                    Text("Bewertung")
+                } footer: {
+                    Text(model.settings.ratingStyle == .heart
+                        ? "Herz an oder aus. Tracks ohne Herz bleiben in der Liste, aussortiert wird nur über den Papierkorb. Tracks mit 4 oder 5 Sternen erscheinen mit Herz."
+                        : "Erneutes Tippen auf denselben Stern entfernt die Bewertung. Herzen erscheinen hier als 5 Sterne.")
+                }
+
+                Section {
                     Picker("Tempobereich", selection: $model.settings.minBPM) {
                         Text("70–140").tag(70.0)
                         Text("80–160").tag(80.0)

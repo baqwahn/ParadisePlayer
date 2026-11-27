@@ -8,7 +8,9 @@ struct TrackListView: View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
                 Picker("Filter", selection: $model.filter) {
-                    ForEach(TrackFilter.allCases) { Text($0.label).tag($0) }
+                    ForEach(TrackFilter.cases(for: model.settings.ratingStyle)) {
+                        Text($0.label(for: model.settings.ratingStyle)).tag($0)
+                    }
                 }
                 .pickerStyle(.segmented)
 
@@ -61,7 +63,8 @@ struct TrackListView: View {
             info: model.store.info(track.id),
             isCurrent: isCurrent,
             isCompatible: model.isCompatibleWithCurrent(track),
-            isDownloaded: track.isDownloaded
+            isDownloaded: track.isDownloaded,
+            heartMode: model.settings.ratingStyle == .heart
         )
         .contentShape(Rectangle())
         .onTapGesture { model.select(track) }
@@ -77,12 +80,20 @@ struct TrackListView: View {
             }
             .tint(Theme.danger)
         }
-        .swipeActions(edge: .leading, allowsFullSwipe: false) {
-            ForEach([5, 4, 3], id: \.self) { stars in
-                Button { model.setRating(stars, for: track) } label: {
-                    Label("\(stars)", systemImage: "star.fill")
+        .swipeActions(edge: .leading, allowsFullSwipe: model.settings.ratingStyle == .heart) {
+            if model.settings.ratingStyle == .heart {
+                let hearted = model.store.info(track.id).isHearted
+                Button { model.toggleHeart(for: track) } label: {
+                    Label(hearted ? "Herz weg" : "Herz", systemImage: hearted ? "heart.slash" : "heart.fill")
                 }
-                .tint(stars == 5 ? Theme.neonOrange : stars == 4 ? Theme.neonPink : Theme.violet)
+                .tint(Theme.neonPink)
+            } else {
+                ForEach([5, 4, 3], id: \.self) { stars in
+                    Button { model.setRating(stars, for: track) } label: {
+                        Label("\(stars)", systemImage: "star.fill")
+                    }
+                    .tint(stars == 5 ? Theme.neonOrange : stars == 4 ? Theme.neonPink : Theme.violet)
+                }
             }
         }
     }
@@ -113,6 +124,7 @@ struct TrackRow: View {
     let isCurrent: Bool
     let isCompatible: Bool
     let isDownloaded: Bool
+    var heartMode = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -136,7 +148,13 @@ struct TrackRow: View {
                     if let artist {
                         Text(artist).lineLimit(1)
                     }
-                    if info.rating > 0 {
+                    if heartMode {
+                        if info.isHearted {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 9))
+                                .foregroundStyle(Theme.neonPink)
+                        }
+                    } else if info.rating > 0 {
                         HStack(spacing: 1) {
                             ForEach(0..<info.rating, id: \.self) { _ in
                                 Image(systemName: "star.fill").font(.system(size: 8))

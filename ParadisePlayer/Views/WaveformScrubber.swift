@@ -7,6 +7,8 @@ struct WaveformScrubber: View {
     let waveform: Waveform?
     let duration: TimeInterval
     let statusText: String?
+    /// Drehendes Rad nur beim Laden, nicht bei Hinweisen wie "Track aus der Liste wählen".
+    var isBusy = false
     let currentTime: () -> TimeInterval
     let onSeek: (TimeInterval) -> Void
 
@@ -35,6 +37,7 @@ struct WaveformScrubber: View {
                         .padding(.vertical, 8)
                         .shadow(color: Theme.neonPink.opacity(0.8), radius: 6)
                         .offset(x: max(0, min(geo.size.width - 3, progress * geo.size.width - 1.5)))
+                        .opacity(duration > 0 ? 1 : 0)
 
                     if let dragFraction {
                         Text(TimeFormat.string(dragFraction * duration))
@@ -47,7 +50,7 @@ struct WaveformScrubber: View {
 
                     if let statusText {
                         HStack(spacing: 8) {
-                            ProgressView().tint(Theme.text)
+                            if isBusy { ProgressView().tint(Theme.text) }
                             Text(statusText).font(.subheadline).foregroundStyle(Theme.textBody)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -12,6 +12,7 @@ struct PlayerView: View {
                 waveform: model.waveform,
                 duration: model.engine.duration,
                 statusText: statusText,
+                isBusy: isBusy,
                 currentTime: { model.engine.currentTime },
                 onSeek: { model.engine.seek(to: $0) }
             )
@@ -33,6 +34,14 @@ struct PlayerView: View {
         case .ready: model.waveform == nil ? "Wellenform wird berechnet …" : nil
         case .failed: "Laden fehlgeschlagen"
         case .idle: model.currentTrack == nil ? "Track aus der Liste wählen" : nil
+        }
+    }
+
+    private var isBusy: Bool {
+        switch model.loadState {
+        case .downloading, .loading: true
+        case .ready: model.waveform == nil
+        case .failed, .idle: false
         }
     }
 
@@ -212,17 +221,32 @@ struct PlayerView: View {
 
     private var actionRow: some View {
         let rating = model.currentInfo?.rating ?? 0
+        let hearted = model.currentInfo?.isHearted ?? false
         return HStack(spacing: 2) {
-            ForEach(1...5, id: \.self) { star in
-                Button { model.rate(star) } label: {
-                    Image(systemName: star <= rating ? "star.fill" : "star")
-                        .font(.system(size: 24))
-                        .foregroundStyle(star <= rating ? Theme.star : Theme.textSecondary)
-                        .frame(width: 42, height: 44)
+            if model.settings.ratingStyle == .heart {
+                Button { model.toggleHeart() } label: {
+                    Image(systemName: hearted ? "heart.fill" : "heart")
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundStyle(hearted ? Theme.neonPink : Theme.textSecondary)
+                        .frame(width: 56, height: 48)
                         .contentShape(Rectangle())
+                        .scaleEffect(hearted ? 1.08 : 1)
+                        .animation(.spring(response: 0.25, dampingFraction: 0.5), value: hearted)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("\(star) Sterne")
+                .accessibilityLabel(hearted ? "Herz entfernen" : "Herz vergeben")
+            } else {
+                ForEach(1...5, id: \.self) { star in
+                    Button { model.rate(star) } label: {
+                        Image(systemName: star <= rating ? "star.fill" : "star")
+                            .font(.system(size: 24))
+                            .foregroundStyle(star <= rating ? Theme.star : Theme.textSecondary)
+                            .frame(width: 42, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(star) Sterne")
+                }
             }
 
             Spacer()

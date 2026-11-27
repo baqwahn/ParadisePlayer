@@ -48,6 +48,22 @@ nonisolated struct TrackInfo: Codable, Sendable, Equatable {
         rating = try c.decodeIfPresent(Int.self, forKey: .rating) ?? 0
         tagsVersion = try c.decodeIfPresent(Int.self, forKey: .tagsVersion) ?? 0
     }
+
+    /// Herz-Modus: ab 4 Sternen gilt ein Track als "mit Herz".
+    var isHearted: Bool { rating >= 4 }
+}
+
+/// Bewertungsart: fünf Sterne oder ein Herz (an/aus).
+/// Intern wird immer `rating` 0–5 gespeichert, Herz an = 5, Herz aus = 0.
+nonisolated enum RatingStyle: String, Codable, CaseIterable, Identifiable, Sendable {
+    case stars, heart
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .stars: "Sterne (1–5)"
+        case .heart: "Herz"
+        }
+    }
 }
 
 nonisolated enum StartMode: String, Codable, CaseIterable, Identifiable, Sendable {
@@ -68,11 +84,12 @@ nonisolated struct AppSettings: Codable, Sendable {
     var pitchRange: Double = 8
     var startMode: StartMode = .beginning
     var autoPlayNext = true
+    var ratingStyle: RatingStyle = .stars
 
     init() {}
 
     enum CodingKeys: String, CodingKey {
-        case minBPM, jumpBeats, pitchRange, startMode, autoPlayNext
+        case minBPM, jumpBeats, pitchRange, startMode, autoPlayNext, ratingStyle
     }
 
     init(from decoder: Decoder) throws {
@@ -83,6 +100,7 @@ nonisolated struct AppSettings: Codable, Sendable {
         pitchRange = try c.decodeIfPresent(Double.self, forKey: .pitchRange) ?? d.pitchRange
         startMode = try c.decodeIfPresent(StartMode.self, forKey: .startMode) ?? d.startMode
         autoPlayNext = try c.decodeIfPresent(Bool.self, forKey: .autoPlayNext) ?? d.autoPlayNext
+        ratingStyle = try c.decodeIfPresent(RatingStyle.self, forKey: .ratingStyle) ?? d.ratingStyle
     }
 
     static let defaultsKey = "appSettings"
@@ -109,6 +127,20 @@ nonisolated enum TrackFilter: String, CaseIterable, Identifiable, Sendable {
         case .unrated: "Neu"
         case .rated: "Bewertet"
         case .top: "4+"
+        }
+    }
+
+    /// Im Herz-Modus gibt es nur Alle, Neu (ohne Herz) und Herz.
+    static func cases(for style: RatingStyle) -> [TrackFilter] {
+        style == .heart ? [.all, .unrated, .top] : allCases
+    }
+
+    func label(for style: RatingStyle) -> String {
+        guard style == .heart else { return label }
+        switch self {
+        case .all: return "Alle"
+        case .unrated: return "Neu"
+        case .rated, .top: return "Herz"
         }
     }
 }

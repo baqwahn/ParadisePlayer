@@ -21,6 +21,7 @@ final class AppModel {
     var settings = AppSettings.load() {
         didSet {
             settings.save()
+            if settings.ratingStyle == .heart, filter == .rated { filter = .top }
             let range = settings.pitchRange
             if abs(engine.pitchPercent) > range {
                 engine.pitchPercent = max(-range, min(range, engine.pitchPercent))
@@ -50,7 +51,15 @@ final class AppModel {
 
     var visibleTracks: [Track] {
         let filtered = tracks.filter { track in
-            let rating = store.info(track.id).rating
+            let info = store.info(track.id)
+            let rating = info.rating
+            if settings.ratingStyle == .heart {
+                switch filter {
+                case .all: return true
+                case .unrated: return !info.isHearted
+                case .rated, .top: return info.isHearted
+                }
+            }
             switch filter {
             case .all: return true
             case .unrated: return rating == 0
@@ -208,6 +217,16 @@ final class AppModel {
 
     func setRating(_ stars: Int, for track: Track) {
         store.update(track.id) { $0.rating = stars }
+    }
+
+    /// Herz-Modus: Herz an (= 5) oder aus (= 0). Kein "Nein", der Track bleibt in der Liste.
+    func toggleHeart() {
+        if let current = currentTrack { toggleHeart(for: current) }
+    }
+
+    func toggleHeart(for track: Track) {
+        let hearted = store.info(track.id).isHearted
+        store.update(track.id) { $0.rating = hearted ? 0 : 5 }
     }
 
     func trashCurrent() {
